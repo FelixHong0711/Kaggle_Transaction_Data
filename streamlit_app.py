@@ -5,6 +5,15 @@ import numpy as np
 import base64
 import io
 
+info_lines = [
+    'Data Period: 01 January, 2023 - 14 October, 2023 <br>',
+    'Data Source: [Kaggle - Customer Transaction](https://www.kaggle.com/datasets/bkcoban/customer-transactions/data) <br>',
+    'Author: Huu Phuc (Felix) Hong <br>',
+    'Last Update: 21 November, 2023'
+]
+info = ''.join(info_lines)
+st.markdown(info, unsafe_allow_html=True)
+
 # Load the data
 df = pd.read_csv("sample_dataset.csv")
 
@@ -102,7 +111,7 @@ summary_table['Average_Transaction_Amount_Per_Customer'] = summary_table['Averag
 # Rename the columns
 summary_table_gender = summary_table.rename(columns=lambda x: x.replace('_', ' '))
 
-# Group the data by 'Gender' and calculate summary statistics
+# Group the data by 'AgeGroup' and calculate summary statistics
 age_groups = df.groupby('AgeGroup')
 
 summary_table = age_groups.agg(
@@ -123,19 +132,21 @@ summary_table['Average_Transaction_Amount_Per_Customer'] = summary_table['Averag
 # Rename the columns
 summary_table_age_group = summary_table.rename(columns=lambda x: x.replace('_', ' '))
 
-# Group the data by 'TransactionMonth' and other cols and calculate the sum of transaction amounts
+# Group the data by 'TransactionMonth' and other cols for downloading
 transaction_amount_month_gender = df.groupby(['TransactionMonth', 'Gender'])['TransactionAmount'].sum().reset_index()
 transaction_amount_gender_category = df.groupby(['Gender', 'Category'])['TransactionAmount'].sum().reset_index()
 transaction_amount_age_category = df.groupby(['AgeGroup', 'Category'])['TransactionAmount'].sum().reset_index()
 
+# Transaction Analysis
 st.title('Transaction Analysis')
 
 st.subheader('By Gender')
 
-# Recompute the gender groups after applying filters
+# Compute statistics for displaying
 gender_groups = df.groupby('Gender')['TransactionAmount'].sum().divide(10**6).round(2)
 mean_transaction_amount = gender_groups.mean()
 
+# Create a bar chart using Plotly Express
 fig1 = px.bar(gender_groups, x=gender_groups.index, y='TransactionAmount', title='Total Transaction Amount')
 fig1.update_xaxes(title_text='Gender')
 fig1.update_yaxes(title_text='Total Transaction Amount (million $)')
@@ -144,6 +155,8 @@ fig1.update_traces(
                   'Transaction Amount: $%{y:.2f}M<br>'
 )
 fig1.update_traces(marker_color='darkred')
+
+# Add a horizontal line for the mean value
 fig1.add_shape(
     type='line',
     x0=-1,
@@ -162,6 +175,7 @@ fig1.add_annotation(
 
 mean_gender_groups = df.groupby('Gender')['TransactionAmount'].mean().round(2)
 
+# Create a bar chart using Plotly Express
 fig2 = px.bar(mean_gender_groups, x=mean_gender_groups.index, y='TransactionAmount', title='Average Transaction Amount')
 fig2.update_xaxes(title_text='Gender')
 fig2.update_yaxes(title_text='Average Transaction Amount ($)')
@@ -171,15 +185,16 @@ fig2.update_traces(
 )
 fig2.update_traces(marker_color='darkred')
 
-# Display the charts in the same row with adjusted figure size
+# Display the charts in the same row
 col1, col2 = st.columns(2)
 with col1:
     st.plotly_chart(fig1, use_container_width=True)
 with col2:
     st.plotly_chart(fig2, use_container_width=True)
 
+
 st.subheader('By Age Group')
-# Group the data by 'AgeGroup' and calculate the sum of transaction amounts
+# Compute statistics for displaying
 age_groups = df.groupby('AgeGroup')['TransactionAmount'].sum().divide(10**6).round(2)
 
 # Calculate the mean of the TransactionAmount
@@ -205,6 +220,7 @@ fig3.add_shape(
     line=dict(color='gray', dash='dash'),
     name='Mean Transaction Amount'
 )
+
 fig3.add_annotation(
     x=-0.8,
     y=mean_transaction_amount + mean_transaction_amount/20,
@@ -212,7 +228,6 @@ fig3.add_annotation(
     showarrow=False,
 )
 
-# Group the data by 'AgeGroup' and calculate the mean of transaction amounts
 mean_age_groups = df.groupby('AgeGroup')['TransactionAmount'].mean().round(2)
 
 # Create a bar chart using Plotly Express
@@ -225,18 +240,16 @@ fig4.update_traces(
 )
 fig4.update_traces(marker_color='darkred')
 
+# Display the charts in the same row
 col3, col4 = st.columns(2)
-
 with col3:
     st.plotly_chart(fig3, use_container_width=True)
 with col4:
     st.plotly_chart(fig4, use_container_width=True)
 
 st.subheader("By Merchant")
-# Group the data by 'MerchantName' and calculate the sum of transaction amounts
+# Compute statistics for displaying
 merchant_groups = df.groupby('MerchantName')['TransactionAmount'].sum().divide(10**3).round(2).nlargest(20)
-
-# Calculate the mean of the TransactionAmount
 mean_transaction_amount = merchant_groups.mean()
 
 # Create a bar chart using Plotly Express
@@ -249,6 +262,7 @@ fig5.update_traces(
                   'Transaction Amount: $%{y:.2f} thousands<br>'
 )
 fig5.update_traces(marker_color='darkred')
+
 # Add a horizontal line for the mean value
 fig5.add_shape(
     type='line',
@@ -269,10 +283,8 @@ fig5.add_annotation(
 st.plotly_chart(fig5)
 
 st.subheader('By Category')
-# Group the data by 'Category' and calculate the sum of transaction amounts
+# Compute statistics for displaying
 category_groups = df.groupby('Category')['TransactionAmount'].sum().divide(10**6).round(2).sort_values(ascending=False)
-
-# Calculate the mean of the TransactionAmount
 mean_transaction_amount = category_groups.mean()
 
 # Create a bar chart using Plotly Express
@@ -313,13 +325,12 @@ month_order = ["January", "February", "March", "April", "May", "June", "July", "
 # Convert the 'TransactionMonth' column to a categorical data type with the specified order
 df['TransactionMonth'] = pd.Categorical(df['TransactionMonth'], categories=month_order, ordered=True)
 
-# Group the data by 'TransactionMonth' and calculate the sum of transaction amounts
+# Compute statistics for displaying
 monthly_totals = df.groupby('TransactionMonth')['TransactionAmount'].sum().divide(10**6).round(2).reset_index()
 
-# Create an interactive line chart using Plotly with the correct month order
+# Create line chart using Plotly express
 fig7 = px.line(monthly_totals, x='TransactionMonth', y='TransactionAmount')
 
-# Customize the chart labels and title
 fig7.update_layout(
     xaxis_title='Transaction Month',
     yaxis_title='Transaction Amount (million $)',
@@ -336,6 +347,7 @@ fig7.update_traces(line=dict(color='darkred'))
 st.plotly_chart(fig7)
 
 # Download summary button
+# Function for creating the download link
 def get_binary_file_downloader_html(bin_data, file_label='File'):
     b64 = base64.b64encode(bin_data).decode()
     custom_css = """ 
