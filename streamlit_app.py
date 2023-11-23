@@ -362,27 +362,23 @@ def get_binary_file_downloader_html(bin_data, file_label='File'):
             }
         </style>
     """
-    html = custom_css + f'<a href="data:file/xlsx;base64,{b64}" download="{file_label}.xlsx" class="download-link">{file_label}</a>'
+    html = custom_css + f'<a href="data:file/csv;base64,{b64}" download="{file_label}.csv" class="download-link">{file_label}</a>'
     return html
 
-# Create BytesIO object to store Excel file in memory
-excel_file = io.BytesIO()
+# Create StringIO object to store CSV file in memory
+csv_file = io.StringIO()
 
-# Create Excel writer with BytesIO object
-with pd.ExcelWriter(excel_file, engine='xlsxwriter') as writer:
-    summary_table_overall.to_excel(writer, sheet_name='Summary_overall', index=False)
-    summary_table_gender.to_excel(writer, sheet_name='Summary_gender', index=False)
-    summary_table_age_group.to_excel(writer, sheet_name='Summary_age_group', index=False)
-    transaction_amount_gender_category.to_excel(writer, sheet_name='Trans_gender_category', index=False)
-    transaction_amount_month_gender.to_excel(writer, sheet_name='Trans_month_gender', index=False)
-    transaction_amount_age_category.to_excel(writer, sheet_name='Trans_age_category', index=False)
+# Write DataFrames to the StringIO object in CSV format
+summary_table_overall.to_csv(csv_file, index=False, lineterminator='\n')
+summary_table_gender.to_csv(csv_file, index=False, lineterminator='\n')
+summary_table_age_group.to_csv(csv_file, index=False, lineterminator='\n')
+transaction_amount_gender_category.to_csv(csv_file, index=False, lineterminator='\n')
+transaction_amount_month_gender.to_csv(csv_file, index=False, lineterminator='\n')
+transaction_amount_age_category.to_csv(csv_file, index=False, lineterminator='\n')
 
-# Seek to the beginning of the BytesIO object
-excel_file.seek(0)
-
-# Convert BytesIO object to binary data
-excel_binary = excel_file.getvalue()
+# Convert StringIO object to binary data
+csv_binary = csv_file.getvalue().encode()
 
 # Display download link
 if st.sidebar.button('Download Summary Data'):
-    st.sidebar.markdown(get_binary_file_downloader_html(excel_binary, 'summary_data'), unsafe_allow_html=True)
+    st.sidebar.markdown(get_binary_file_downloader_html(csv_binary, 'summary_data'), unsafe_allow_html=True)
